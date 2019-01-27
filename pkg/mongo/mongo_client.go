@@ -9,15 +9,21 @@ import (
 	"time"
 )
 
+
+type Config struct {
+	DbUrl  string
+	DbName string
+}
+
 type Client struct {
 	client   *mongo.Client
 	database *mongo.Database
 }
 
-func CreateClient(url string, dbName string) (*Client, error) {
+func CreateClient(cfg Config) (*Client, error) {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	client, err := mongo.Connect(ctx, url)
-	return &Client{client, client.Database(dbName)}, err
+	client, err := mongo.Connect(ctx, cfg.DbUrl)
+	return &Client{client, client.Database(cfg.DbName)}, err
 }
 
 func (c *Client) SaveContent(content core.Content, collectionName string) error {
