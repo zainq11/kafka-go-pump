@@ -1,11 +1,9 @@
 package kafka
 
 import (
-	"context"
-	"github.com/rs/zerolog/log"
-	"github.com/segmentio/kafka-go"
-	"strings"
-	"time"
+	"fmt"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
+	//"strings"
 )
 
 type Config struct {
@@ -18,39 +16,38 @@ type Config struct {
 
 type Consumer struct {
 	KafkaCfg Config
-	Reader   *kafka.Reader
+	Reader   *kafka.Consumer
 }
 
 type doOnRead func(value []byte)
 
 func CreateConsumer(cfg Config) (Consumer, error) {
-	// Make a new reader that consumes from topic-A
-	config := kafka.ReaderConfig{
-		Brokers:         strings.Split(cfg.KafkaBrokerUrl, ","),
-		GroupID:         cfg.KafkaClientId,
-		Topic:           cfg.KafkaTopic,
-		MinBytes:        10e3,            // 10KB
-		MaxBytes:        10e6,            // 10MB
-		MaxWait:         1 * time.Second, // Maximum amount of time to wait for new data to come when fetching batches of messages from kafka.
-		ReadLagInterval: -1,
+	c, err := kafka.NewConsumer(&kafka.ConfigMap{
+		"bootstrap.servers": cfg.KafkaBrokerUrl,
+		"group.id":          cfg.KafkaConsumerGroup,
+		"auto.offset.reset": "earliest",
+	})
+
+	if err != nil {
+		panic(err)
 	}
 
-	return Consumer{KafkaCfg: cfg, Reader: kafka.NewReader(config)}, nil
+	c.SubscribeTopics([]string{cfg.KafkaTopic}, nil)
+
+	return Consumer{KafkaCfg: cfg, Reader: c}, nil
 }
 
 func (consumer *Consumer) Subscribe(callback doOnRead) {
-	reader := consumer.Reader
-	// Close Reader once this program exits
-	defer reader.Close()
-
 	for {
-		m, err := reader.ReadMessage(context.Background())
-		if err != nil {
-			log.Error().Msgf("Error while receiving message: %s", err.Error())
-			continue
+		msg, err := consumer.Reader.ReadMessage(-1)
+		if err == nil {
+			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
+			callback(msg.Value)
+		} else {
+			// The client will automatically try to recover from all errors.
+			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
 		}
-		value := m.Value
-		log.Printf("message at topic/partition/offset %v/%v/%v: %s\n", m.Topic, m.Partition, m.Offset, string(value))
-		callback(value)
 	}
+
+	consumer.Reader.Close()
 }
