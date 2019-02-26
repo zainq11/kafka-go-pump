@@ -7,7 +7,6 @@ import (
 	"github.com/zianKazi/social-content-data-service/pkg/mongo"
 )
 
-
 type Properties struct {
 	BrokerUrl string
 	Client    *mongo.Client
@@ -19,6 +18,7 @@ type PlatformContext struct {
 	TopicName      string
 	CollectionName string
 	client         *mongo.Client
+	parser         func([]byte) map[string]interface{}
 	//consumer       *kafka.Consumer
 }
 
@@ -41,9 +41,9 @@ func (context *PlatformContext) Boot(props Properties) error {
 	} else {
 		//context.consumer = &consumer
 		consumer.Subscribe(func(value []byte) {
-			content := mongo.Content{}
-			json.Unmarshal(value, &content)
-			go context.client.SaveContent(content, context.CollectionName)
+			//document := mongo.Document{Collection: context.CollectionName, }
+			//json.Unmarshal(value, &content)
+			go context.client.SaveContent(context.CollectionName, context.parser(value))
 		})
 		return nil
 	}
@@ -51,7 +51,14 @@ func (context *PlatformContext) Boot(props Properties) error {
 
 func CreatePlatformMap(props Properties) (PlatformMap, error) {
 	platformMap := PlatformMap{}
-	reddit := PlatformContext{Name: REDDIT, TopicName: REDDIT, CollectionName: "reddit", client: props.Client}
+	reddit := PlatformContext{
+		Name: REDDIT, TopicName: REDDIT, CollectionName: "reddit",
+		client: props.Client,
+		parser: func(bytes []byte) map[string]interface{} {
+			var content map[string]interface{}
+			json.Unmarshal(bytes, &content)
+			return content
+		}}
 	if error := reddit.Boot(props); error != nil {
 		fmt.Println("Failed to initialize the PlatformContext for " + reddit.Name)
 		return nil, error

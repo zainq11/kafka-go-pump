@@ -8,13 +8,6 @@ import (
 	"time"
 )
 
-type Content struct {
-	Title       string `json:"title"`
-	Author      string `json:"author"`
-	Data        string `json:"content"`
-	CreatedTime string `json:"time"`
-}
-
 type Config struct {
 	DbUrl  string
 	DbName string
@@ -31,14 +24,10 @@ func CreateClient(cfg Config) (*Client, error) {
 	return &Client{client, client.Database(cfg.DbName)}, err
 }
 
-func (c *Client) SaveContent(content Content, collectionName string) error {
+func (c *Client) SaveContent(collectionName string, content map[string]interface{}) error {
 	collection := c.database.Collection(collectionName)
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	if res, err := collection.InsertOne(ctx, bson.M{
-		"title":    content.Title,
-		"data":     content.Data,
-		"author":   content.Author,
-		"time":     content.CreatedTime}); err != nil {
+	if res, err := collection.InsertOne(ctx, bson.M(content)); err != nil {
 		fmt.Errorf("An error occured when trying to save document")
 		return err
 	} else {

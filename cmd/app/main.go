@@ -24,8 +24,8 @@ func main() {
 
 	flag.StringVar(&kafkaCfg.KafkaBrokerUrl, "kafka-brokers", "localhost:19092,localhost:29092,localhost:39092", "Kafka brokers in comma separated value")
 	flag.BoolVar(&kafkaCfg.KafkaVerbose, "kafka-verbose", true, "Kafka verbose logging")
-	flag.StringVar(&kafkaCfg.KafkaTopic, "kafka-topic", "rdt", "Kafka topic. Only one topic per worker.")
-	flag.StringVar(&kafkaCfg.KafkaConsumerGroup, "kafka-consumer-group", "rdt-data", "Kafka consumer group")
+	flag.StringVar(&kafkaCfg.KafkaTopic, "kafka-topic", "reddit", "Kafka topic. Only one topic per worker.")
+	flag.StringVar(&kafkaCfg.KafkaConsumerGroup, "kafka-consumer-group", "reddit-data", "Kafka consumer group")
 	flag.StringVar(&kafkaCfg.KafkaClientId, "kafka-client-id", "my-client-id", "Kafka client id")
 
 	flag.Parse()
